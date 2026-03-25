@@ -47,8 +47,10 @@ export async function getFavorites(req, res) {
   try {
     const userId = req.userId;
 
+    // Devolver claves en camelCase para que el cliente las espere correctamente
     const favorites = await db.any(
-      'SELECT id, pokemonId, pokemonName, addedAt FROM favorites WHERE userId = $1 ORDER BY addedAt DESC',
+      `SELECT id, pokemonid AS "pokemonId", pokemonname AS "pokemonName", addedat AS "addedAt"
+       FROM favorites WHERE userId = $1 ORDER BY addedAt DESC`,
       [userId]
     );
 
@@ -64,7 +66,7 @@ export async function isFavorite(req, res) {
     const userId = req.userId;
 
     const favorite = await db.oneOrNone(
-      'SELECT id FROM favorites WHERE userId = $1 AND pokemonId = $2',
+      'SELECT id FROM favorites WHERE userId = $1 AND pokemonid = $2',
       [userId, pokemonId]
     );
 

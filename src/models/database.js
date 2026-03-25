@@ -5,13 +5,23 @@ dotenv.config();
 
 const pgp = pgPromise();
 
-const db = pgp({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+const connectionString = process.env.DATABASE_URL;
+const useSsl = connectionString && (connectionString.includes('sslmode=require') || process.env.PGSSLMODE === 'require');
+
+const db = pgp(
+  connectionString
+    ? {
+        connectionString,
+        ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+      }
+    : {
+        host: process.env.DB_HOST,
+        port: Number(process.env.DB_PORT) || 5432,
+        database: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+      }
+);
 
 db.connect()
   .then(() => console.log('Database connected'))

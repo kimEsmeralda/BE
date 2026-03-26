@@ -1,5 +1,6 @@
 import db from '../models/database.js';
 import crypto from 'crypto';
+import { sendPushNotification } from '../routes/notificationsRoutes.js';
 
 function generateFriendCode() {
   return crypto.randomBytes(6).toString('hex').toUpperCase();
@@ -49,6 +50,17 @@ export async function addFriendByCode(req, res) {
       'INSERT INTO friends (userId, friendId) VALUES ($1, $2)',
       [friendId, userId]
     );
+
+    // Get the name of the user who added the friend
+    const user = await db.oneOrNone('SELECT username FROM users WHERE id = $1', [userId]);
+
+    // Send push notification to the friend
+    await sendPushNotification(friendId, {
+      title: '¡Nuevo amigo!',
+      body: `${user?.username || 'Alguien'} te ha agregado como amigo.`,
+      icon: '/icons/icon-192x192.png',
+      url: '/'
+    });
 
     res.status(201).json({ message: 'Amigo agregado exitosamente' });
   } catch (err) {
@@ -104,6 +116,17 @@ export async function startBattle(req, res) {
     const team2 = await db.oneOrNone(
       'SELECT * FROM teams WHERE id = $1 AND userId = $2',
       [friendTeamId, friendId]
+    // Get the name of the user who started the battle
+    const user = await db.oneOrNone('SELECT username FROM users WHERE id = $1', [userId]);
+
+    // Send push notification to the friend
+    await sendPushNotification(friendId, {
+      title: '¡Has sido retado a una batalla!',
+      body: `${user?.username || 'Un amigo'} te ha desafiado a una batalla Pokémon.`,
+      icon: '/icons/icon-192x192.png',
+      url: '/battle'
+    });
+
     );
 
     if (!team2) {

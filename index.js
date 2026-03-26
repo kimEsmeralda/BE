@@ -11,6 +11,7 @@ import favoritesRoutes from './src/routes/favoritesRoutes.js';
 import teamsRoutes from './src/routes/teamsRoutes.js';
 import friendRoutes from './src/routes/friendRoutes.js';
 import pokemonRoutes from './src/routes/pokemonRoutes.js';
+import notificationsRoutes from './src/routes/notificationsRoutes.js';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -34,6 +35,7 @@ app.use('/api/favorites', favoritesRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/pokemon', pokemonRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Ruta de salud
 app.get('/api/health', (req, res) => {

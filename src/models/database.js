@@ -39,11 +39,19 @@ export async function initializeDatabase() {
         googleId VARCHAR(255) UNIQUE,
         googleEmail VARCHAR(255),
         googlePicture VARCHAR(500),
+        push_subscription JSONB,
         createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    console.log('✓ Users table created');
+    
+    // Add column if it doesn't exist for existing tables
+    try {
+      await db.none('ALTER TABLE users ADD COLUMN IF NOT EXISTS push_subscription JSONB');
+    } catch (e) {
+      console.log('Column push_subscription already exists or error adding:', e.message);
+    }
+    console.log('✓ Users table created and verified with push_subscription');
 
     // Tabla de pokémon favoritos
     await db.none(`

@@ -7,11 +7,19 @@ const router = express.Router();
 
 router.use(verifyToken);
 
-webpush.setVapidDetails(
-  'mailto:pokedexadmin@tudominio.com',
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-);
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(
+      'mailto:pokedexadmin@tudominio.com',
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+  } catch (err) {
+    console.error('Error configurando VAPID_KEYS para web-push:', err.message);
+  }
+} else {
+  console.warn('VAPID_PUBLIC_KEY o VAPID_PRIVATE_KEY no están definidos. Las notificaciones push podrían no funcionar.');
+}
 
 // Subscribe to push notifications
 router.post('/subscribe', async (req, res) => {

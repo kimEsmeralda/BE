@@ -26,7 +26,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    if (!origin || allowedOrigins.includes(origin) || origin.includes('railway.app')) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));

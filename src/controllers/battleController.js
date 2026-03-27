@@ -1,4 +1,4 @@
-import db from '../models/database.js';
+﻿import db from '../models/database.js';
 import crypto from 'crypto';
 import { sendPushNotification } from '../routes/notificationsRoutes.js';
 
@@ -58,6 +58,9 @@ export async function addFriendByCode(req, res) {
 
     if (existingFriendship) {
       return res.status(400).json({ error: 'Ya eres amigo de este usuario' });
+    }
+
+    await db.none(
       'INSERT INTO friends (userId, friendId) VALUES ($1, $2)',
       [userId, friendId]
     );
@@ -89,9 +92,9 @@ export async function getFriends(req, res) {
     const userId = req.userId;
 
     const friends = await db.any(
-      `SELECT u.id, u.username, u.email 
-       FROM friends f 
-       JOIN users u ON f.friendId = u.id 
+      `SELECT u.id, u.username, u.email
+       FROM friends f
+       JOIN users u ON f.friendId = u.id
        WHERE f.userId = $1`,
       [userId]
     );
@@ -196,11 +199,11 @@ export async function getBattleHistory(req, res) {
     const userId = req.userId;
 
     const battles = await db.any(
-      `SELECT b.*, u1.username as userName, u2.username as friendName 
-       FROM battles b 
-       JOIN users u1 ON b.userId = u1.id 
-       JOIN users u2 ON b.friendId = u2.id 
-       WHERE b.userId = $1 OR b.friendId = $2 
+      `SELECT b.*, u1.username as userName, u2.username as friendName
+       FROM battles b
+       JOIN users u1 ON b.userId = u1.id
+       JOIN users u2 ON b.friendId = u2.id
+       WHERE b.userId = $1 OR b.friendId = $2
        ORDER BY b.createdAt DESC`,
       [userId, userId]
     );

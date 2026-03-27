@@ -1,4 +1,4 @@
-import pgPromise from 'pg-promise';
+﻿import pgPromise from 'pg-promise';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -54,7 +54,7 @@ export async function initializeDatabase() {
 
       try {
         await db.none('ALTER TABLE users ADD COLUMN IF NOT EXISTS friend_code VARCHAR(20) UNIQUE');
-        // Asegurarse de que todos tengan un código si no lo tienen
+        // Asegurarse de que todos tengan un cÃ³digo si no lo tienen
         const usersWithoutCode = await db.any('SELECT id FROM users WHERE friend_code IS NULL');
         for (const user of usersWithoutCode) {
           const crypto = await import('crypto');
@@ -65,14 +65,20 @@ export async function initializeDatabase() {
         console.log('Column friend_code already exists or error adding:', e.message);
       }
       
-      console.log('✓ Users table created and verified with push_subscription and friend_code');
+      console.log('âœ“ Users table created and verified with push_subscription and friend_code');
+
+    // Tabla de favoritos
+    await db.none(`
+      CREATE TABLE IF NOT EXISTS favorites (
+        id SERIAL PRIMARY KEY,
+        userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         pokemonId INTEGER NOT NULL,
         pokemonName VARCHAR(255) NOT NULL,
         addedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(userId, pokemonId)
       )
     `);
-    console.log('✓ Favorites table created');
+    console.log('âœ“ Favorites table created');
 
     // Tabla de equipos
     await db.none(`
@@ -85,9 +91,9 @@ export async function initializeDatabase() {
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    console.log('✓ Teams table created');
+    console.log('âœ“ Teams table created');
 
-    // Tabla de pokémon en equipos
+    // Tabla de pokÃ©mon en equipos
     await db.none(`
       CREATE TABLE IF NOT EXISTS team_pokemon (
         id SERIAL PRIMARY KEY,
@@ -98,7 +104,7 @@ export async function initializeDatabase() {
         addedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    console.log('✓ Team Pokemon table created');
+    console.log('âœ“ Team Pokemon table created');
 
     // Tabla de amigos
     await db.none(`
@@ -110,7 +116,7 @@ export async function initializeDatabase() {
         UNIQUE(userId, friendId)
       )
     `);
-    console.log('✓ Friends table created');
+    console.log('âœ“ Friends table created');
 
     // Tabla de batallas
     await db.none(`
@@ -125,9 +131,9 @@ export async function initializeDatabase() {
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    console.log('✓ Battles table created');
+    console.log('âœ“ Battles table created');
 
-    console.log('✨ Database initialized successfully');
+    console.log('âœ¨ Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
     throw error;

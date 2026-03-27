@@ -74,7 +74,7 @@ export async function addFriendByCode(req, res) {
     const user = await db.oneOrNone('SELECT username FROM users WHERE id = $1', [userId]);
 
     // Send push notification to the friend
-    await sendPushNotification(friendId, {
+    sendPushNotification(friendId, {
       title: '¡Nuevo amigo!',
       body: `${user?.username || 'Alguien'} te ha agregado como amigo.`,
       icon: '/icons/icon-192x192.png',
@@ -141,7 +141,7 @@ export async function startBattle(req, res) {
     const user = await db.oneOrNone('SELECT username FROM users WHERE id = $1', [userId]);
 
     // Send push notification to the friend
-    await sendPushNotification(friendId, {
+    sendPushNotification(friendId, {
       title: '¡Has sido retado a una batalla!',
       body: `${user?.username || 'Un amigo'} te ha desafiado a una batalla Pokémon.`,
       icon: '/icons/icon-192x192.png',

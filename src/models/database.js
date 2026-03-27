@@ -51,13 +51,21 @@ export async function initializeDatabase() {
     } catch (e) {
       console.log('Column push_subscription already exists or error adding:', e.message);
     }
-    console.log('✓ Users table created and verified with push_subscription');
 
-    // Tabla de pokémon favoritos
-    await db.none(`
-      CREATE TABLE IF NOT EXISTS favorites (
-        id SERIAL PRIMARY KEY,
-        userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      try {
+        await db.none('ALTER TABLE users ADD COLUMN IF NOT EXISTS friend_code VARCHAR(20) UNIQUE');
+        // Asegurarse de que todos tengan un código si no lo tienen
+        const usersWithoutCode = await db.any('SELECT id FROM users WHERE friend_code IS NULL');
+        for (const user of usersWithoutCode) {
+          const crypto = await import('crypto');
+          const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+          await db.none('UPDATE users SET friend_code = $1 WHERE id = $2', [code, user.id]);
+        }
+      } catch (e) {
+        console.log('Column friend_code already exists or error adding:', e.message);
+      }
+      
+      console.log('✓ Users table created and verified with push_subscription and friend_code');
         pokemonId INTEGER NOT NULL,
         pokemonName VARCHAR(255) NOT NULL,
         addedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

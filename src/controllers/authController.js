@@ -1,6 +1,7 @@
 import db from '../models/database.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 export async function register(req, res) {
   try {
@@ -11,10 +12,11 @@ export async function register(req, res) {
     }
 
     const hashedPassword = bcrypt.hashSync(password, 10);
+    const friendCode = crypto.randomBytes(4).toString('hex').toUpperCase();
 
     const user = await db.one(
-      'INSERT INTO users (email, password, username) VALUES ($1, $2, $3) RETURNING id, email, username',
-      [email, hashedPassword, username]
+      'INSERT INTO users (email, password, username, friend_code) VALUES ($1, $2, $3, $4) RETURNING id, email, username, friend_code',
+      [email, hashedPassword, username, friendCode]
     );
 
     const token = jwt.sign(
@@ -97,9 +99,11 @@ export async function googleLogin(req, res) {
     let user = await db.oneOrNone('SELECT * FROM users WHERE googleId = $1', [googleId]);
 
     if (!user) {
+      const friendCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+
       user = await db.one(
-        'INSERT INTO users (email, googleId, googleEmail, googlePicture, username) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, username',
-        [email, googleId, email, picture, username || email.split('@')[0]]
+        'INSERT INTO users (email, googleId, googleEmail, googlePicture, username, friend_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, email, username, friend_code',
+        [email, googleId, email, picture, username || email.split('@')[0], friendCode]
       );
     }
 

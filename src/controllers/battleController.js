@@ -9,12 +9,19 @@ function generateFriendCode() {
 export async function generateCode(req, res) {
   try {
     const userId = req.userId;
-    const friendCode = generateFriendCode();
+    const user = await db.oneOrNone('SELECT friend_code FROM users WHERE id = $1', [userId]);
 
-    await db.none(
-      'INSERT INTO friends (userId, friendId) VALUES ($1, $2)',
-      [userId, userId]
-    );
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    let friendCode = user.friend_code;
+
+    // Si por alguna razón el usuario no tiene código aún, le generamos uno
+    if (!friendCode) {
+      friendCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+      await db.none('UPDATE users SET friend_code = $1 WHERE id = $2', [friendCode, userId]);
+    }
 
     res.json({ friendCode });
   } catch (err) {
@@ -24,24 +31,33 @@ export async function generateCode(req, res) {
 
 export async function addFriendByCode(req, res) {
   try {
-    const { friendId } = req.body;
+    const { friendCode } = req.body;
     const userId = req.userId;
 
-    if (!friendId) {
-      return res.status(400).json({ error: 'ID del amigo requerido' });
+    if (!friendCode) {
+      return res.status(400).json({ error: 'Código de amigo requerido' });
     }
 
-    const friend = await db.oneOrNone('SELECT id FROM users WHERE id = $1', [friendId]);
+    const friend = await db.oneOrNone('SELECT id FROM users WHERE friend_code = $1', [friendCode]);
 
     if (!friend) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+      return res.status(404).json({ error: 'Código de amigo no válido' });
     }
+
+    const friendId = friend.id;
 
     if (friendId === userId) {
       return res.status(400).json({ error: 'No puedes agregarte a ti mismo' });
     }
 
-    await db.none(
+    // Verificar si ya son amigos
+    const existingFriendship = await db.oneOrNone(
+      'SELECT id FROM friends WHERE userId = $1 AND friendId = $2',
+      [userId, friendId]
+    );
+
+    if (existingFriendship) {
+      return res.status(400).json({ error: 'Ya eres amigo de este usuario' });
       'INSERT INTO friends (userId, friendId) VALUES ($1, $2)',
       [userId, friendId]
     );

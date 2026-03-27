@@ -116,6 +116,8 @@ export async function startBattle(req, res) {
     const team2 = await db.oneOrNone(
       'SELECT * FROM teams WHERE id = $1 AND userId = $2',
       [friendTeamId, friendId]
+    );
+
     // Get the name of the user who started the battle
     const user = await db.oneOrNone('SELECT username FROM users WHERE id = $1', [userId]);
 
@@ -126,8 +128,6 @@ export async function startBattle(req, res) {
       icon: '/icons/icon-192x192.png',
       url: '/battle'
     });
-
-    );
 
     if (!team2) {
       return res.status(404).json({ error: 'Equipo del amigo no encontrado' });

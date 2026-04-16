@@ -45,13 +45,13 @@ export async function removeFavorite(req, res) {
 
 export async function getFavorites(req, res) {
   try {
-    const userId = req.userId;
-
-    // Devolver claves en camelCase para que el cliente las espere correctamente
+    // Retornamos todos los favoritos (global) ordenados por ID descendente
+    // Incluimos el username para mostrar quién lo añadió
     const favorites = await db.any(
-      `SELECT id, pokemonid AS "pokemonId", pokemonname AS "pokemonName", addedat AS "addedAt"
-       FROM favorites WHERE userId = $1 ORDER BY addedAt DESC`,
-      [userId]
+      `SELECT f.id, f.pokemonid AS "pokemonId", f.pokemonname AS "pokemonName", f.addedat AS "addedAt", f.userid AS "userId", u.username AS "addedBy"
+       FROM favorites f
+       JOIN users u ON f.userid = u.id
+       ORDER BY f.id DESC`
     );
 
     res.json(favorites);

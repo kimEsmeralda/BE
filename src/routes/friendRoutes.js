@@ -3,6 +3,7 @@ import {
   generateCode,
   addFriendByCode,
   getFriends,
+  removeFriend,
   startBattle,
   calculateBattleResult,
   getBattleHistory
@@ -17,6 +18,7 @@ router.use(verifyToken);
 router.post('/code/generate', generateCode);
 router.post('/add', addFriendByCode);
 router.get('/', getFriends);
+router.delete('/:friendId', removeFriend);
 
 // Rutas de batallas
 router.post('/battles/start', startBattle);

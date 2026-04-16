@@ -105,13 +105,42 @@ export async function getFriends(req, res) {
   }
 }
 
+export async function removeFriend(req, res) {
+  try {
+    const userId = req.userId;
+    const { friendId } = req.params;
+
+    if (!friendId) {
+      return res.status(400).json({ error: 'ID de amigo requerido' });
+    }
+
+    // Check if friendship exists
+    const friendship = await db.oneOrNone(
+      'SELECT id FROM friends WHERE userId = $1 AND friendId = $2',
+      [userId, friendId]
+    );
+
+    if (!friendship) {
+      return res.status(404).json({ error: 'No sois amigos' });
+    }
+
+    // Delete friendship (both records)
+    await db.none('DELETE FROM friends WHERE userId = $1 AND friendId = $2', [userId, friendId]);
+    await db.none('DELETE FROM friends WHERE userId = $1 AND friendId = $2', [friendId, userId]);
+
+    res.json({ message: 'Amigo eliminado exitosamente' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 export async function startBattle(req, res) {
   try {
     const { friendId, userTeamId, friendTeamId } = req.body;
     const userId = req.userId;
 
-    if (!friendId || !userTeamId || !friendTeamId) {
-      return res.status(400).json({ error: 'friendId, userTeamId y friendTeamId son requeridos' });
+    if (!friendId || !userTeamId) {
+      return res.status(400).json({ error: 'friendId y userTeamId son requeridos' });
     }
 
     const friendship = await db.oneOrNone(
@@ -132,9 +161,18 @@ export async function startBattle(req, res) {
       return res.status(404).json({ error: 'Tu equipo no encontrado' });
     }
 
+    let actualFriendTeamId = friendTeamId;
+    if (!actualFriendTeamId) {
+      const friendTeams = await db.any('SELECT id FROM teams WHERE userId = $1', [friendId]);
+      if (friendTeams && friendTeams.length > 0) {
+        const randomIdx = Math.floor(Math.random() * friendTeams.length);
+        actualFriendTeamId = friendTeams[randomIdx].id;
+      }
+    }
+
     const team2 = await db.oneOrNone(
       'SELECT * FROM teams WHERE id = $1 AND userId = $2',
-      [friendTeamId, friendId]
+      [actualFriendTeamId, friendId]
     );
 
     // Get the name of the user who started the battle
@@ -152,9 +190,14 @@ export async function startBattle(req, res) {
       return res.status(404).json({ error: 'Equipo del amigo no encontrado' });
     }
 
+    const team1Pokemon = await db.any('SELECT * FROM team_pokemon WHERE teamId = $1 ORDER BY position ASC', [team1.id]);
+    const team2Pokemon = await db.any('SELECT * FROM team_pokemon WHERE teamId = $1 ORDER BY position ASC', [team2.id]);
+    team1.pokemon = team1Pokemon || [];
+    team2.pokemon = team2Pokemon || [];
+
     const result = await db.result(
       'INSERT INTO battles (userId, friendId, userTeamId, friendTeamId) VALUES ($1, $2, $3, $4) RETURNING id',
-      [userId, friendId, userTeamId, friendTeamId]
+      [userId, friendId, userTeamId, actualFriendTeamId]
     );
 
     res.status(201).json({
@@ -169,7 +212,7 @@ export async function startBattle(req, res) {
 
 export async function calculateBattleResult(req, res) {
   try {
-    const { battleId } = req.body;
+    const { battleId, winnerId } = req.body;
     const userId = req.userId;
 
     const battle = await db.oneOrNone(
@@ -181,10 +224,17 @@ export async function calculateBattleResult(req, res) {
       return res.status(404).json({ error: 'Batalla no encontrada' });
     }
 
-    const winner = Math.random() > 0.5 ? userId : battle.friendId;
+    // Validate the battle locally if needed, but here we trust the frontend's winner if it matches a participant.
+    let winner = null;
+    if (winnerId === userId || winnerId === battle.friendId) {
+      winner = winnerId;
+    } else {
+      // Si el frontend no mandó un winnerId válido, validamos al azar como fallback retrocompatible
+      winner = Math.random() > 0.5 ? userId : battle.friendId;
+    }
 
     await db.none(
-      'UPDATE battles SET winner = $1 WHERE id = $2',
+      'UPDATE battles SET winner = $1, updatedAt = CURRENT_TIMESTAMP WHERE id = $2',
       [winner, battleId]
     );
 

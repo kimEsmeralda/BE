@@ -178,14 +178,6 @@ export async function startBattle(req, res) {
     // Get the name of the user who started the battle
     const user = await db.oneOrNone('SELECT username FROM users WHERE id = $1', [userId]);
 
-    // Send push notification to the friend
-    sendPushNotification(friendId, {
-      title: '¡Has sido retado a una batalla!',
-      body: `${user?.username || 'Un amigo'} te ha desafiado a una batalla Pokémon.`,
-      icon: '/icons/icon-192x192.png',
-      url: '/battle'
-    });
-
     if (!team2) {
       return res.status(404).json({ error: 'Equipo del amigo no encontrado' });
     }
@@ -196,13 +188,34 @@ export async function startBattle(req, res) {
     team2.pokemon = team2Pokemon || [];
 
     const result = await db.result(
-      'INSERT INTO battles (userId, friendId, userTeamId, friendTeamId) VALUES ($1, $2, $3, $4) RETURNING id',
-      [userId, friendId, userTeamId, actualFriendTeamId]
-    );
+      'INSERT INTO battles (userId, friendId, userTeamId, friendTeamId, status) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      [userId, friendId, userTeamId, actualFriendTeamId, 'pending']
+    ).catch(async (err) => {
+        // Fallback for earlier schema if status column doesn't exist
+        const r = await db.result(
+          'INSERT INTO battles (userId, friendId, userTeamId, friendTeamId) VALUES ($1, $2, $3, $4) RETURNING id',
+          [userId, friendId, userTeamId, actualFriendTeamId]
+        );
+        return r;
+    });
+
+    const battleId = result.rows[0].id;
+    
+    // Almacenar en mapa en memoria como respaldo si se requiere mantener el estado real-time
+    if (!global.battles) global.battles = new Map();
+    global.battles.set(battleId, { status: 'pending', initiator: userId, target: friendId });
+
+    // Send push notification to the friend
+    sendPushNotification(friendId, {
+      title: '¡Has sido retado a una batalla!',
+      body: `${user?.username || 'Un amigo'} te ha desafiado a una batalla Pokémon.`,
+      icon: '/icons/icon-192x192.png',
+      url: `/battle/${battleId}`
+    });
 
     res.status(201).json({
-      message: 'Batalla iniciada',
-      battleId: result.rows[0].id,
+      message: 'Desafío de batalla enviado',
+      battleId: battleId,
       teams: { team1, team2 }
     });
   } catch (err) {

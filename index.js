@@ -12,11 +12,15 @@ import teamsRoutes from './src/routes/teamsRoutes.js';
 import friendRoutes from './src/routes/friendRoutes.js';
 import pokemonRoutes from './src/routes/pokemonRoutes.js';
 import notificationsRoutes from './src/routes/notificationsRoutes.js';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { socketHandler } from './src/socketHandler.js';
 
 // Cargar variables de entorno
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 5432
 
 // Middlewares
@@ -35,6 +39,17 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
+// Registrar manejador de sockets
+socketHandler(io);
 
 // Inicializar base de datos
 await initializeDatabase();
@@ -60,7 +75,10 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Ruta no encontrada' });
 });
 
+// Exportar io para poder usarlo en controladores si es necesario
+export { io };
+
 // Iniciar servidor
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`✨ Servidor corriendo en http://localhost:${PORT}`);
 });

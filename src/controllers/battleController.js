@@ -257,6 +257,41 @@ export async function calculateBattleResult(req, res) {
   }
 }
 
+export async function getBattle(req, res) {
+  try {
+    const battleId = req.params.id;
+    const battle = await db.oneOrNone('SELECT * FROM battles WHERE id = $1', [battleId]);
+    if (!battle) return res.status(404).json({ error: 'Batalla no encontrada' });
+    
+    // In pg-promise columns are lowercased
+    const userTeamId = battle.userteamid || battle.userTeamId;
+    const friendTeamId = battle.friendteamid || battle.friendTeamId;
+
+    const team1 = await db.oneOrNone('SELECT * FROM teams WHERE id = $1', [userTeamId]);
+    const team2 = await db.oneOrNone('SELECT * FROM teams WHERE id = $1', [friendTeamId]);
+    
+    if (!team1 || !team2) return res.status(404).json({ error: 'Equipos no encontrados' });
+
+    const team1Pokemon = await db.any('SELECT * FROM team_pokemon WHERE teamId = $1 ORDER BY position ASC', [team1.id]);
+    const team2Pokemon = await db.any('SELECT * FROM team_pokemon WHERE teamId = $1 ORDER BY position ASC', [team2.id]);
+    
+    team1.pokemon = team1Pokemon || [];
+    team2.pokemon = team2Pokemon || [];
+
+    res.json({
+      battleId: battle.id,
+      userId: battle.userid || battle.userId,
+      friendId: battle.friendid || battle.friendId,
+      teams: {
+        team1,
+        team2
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 export async function getBattleHistory(req, res) {
   try {
     const userId = req.userId;

@@ -6,7 +6,8 @@ import {
   removeFriend,
   startBattle,
   calculateBattleResult,
-  getBattleHistory
+  getBattleHistory,
+  getBattle
 } from '../controllers/battleController.js';
 import { verifyToken } from '../middleware/auth.js';
 
@@ -24,5 +25,6 @@ router.delete('/:friendId', removeFriend);
 router.post('/battles/start', startBattle);
 router.post('/battles/result', calculateBattleResult);
 router.get('/battles/history', getBattleHistory);
+router.get('/battles/:id', getBattle);
 
 export default router;
